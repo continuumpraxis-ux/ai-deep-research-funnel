@@ -1,0 +1,11 @@
+qid,status,latency_s,report_chars,citation_markers,body_citations,url_sources,cost_usd,nemotron_calls,nemotron_non200,nemotron_llm_errors,nemotron_over_60s,nemotron_max_secs,deepseek_chat_calls,deepseek_chat_non200,researcher_truncations_8192,researcher_chain_errors,batch_tool_errors,researcher_completed,writer_started,writer_ended,ds_prompt_tok,ds_completion_tok,proxy_429,searches,fetches,fingerprint,error
+Q01,success,1419,39467,64,41,64,0.19,55,0,0,12,217.0,132,0,4,4,2,14,1,1,1342857,79769,11,87,0,,
+Q02,success,1002,16206,8,8,8,0.16,40,0,0,10,83.0,77,0,5,5,1,5,1,1,873552,56972,10,94,0,,
+Q03,success,916,40308,91,68,91,0.19,36,0,0,8,193.0,68,0,1,1,1,11,1,1,761130,72993,8,98,0,,
+Q04,success,1096,32630,61,40,61,0.16,47,0,0,10,137.0,85,0,3,3,1,9,1,1,959093,64689,10,88,0,,
+Q05,success,824,31016,30,19,30,0.19,31,0,0,7,74.0,116,0,4,4,5,8,1,1,1361155,64228,6,97,0,,
+Q06,failure,854,0,0,0,0,0.20,34,0,0,6,96.0,130,0,6,6,1,12,1,1,1336912,86188,5,98,0,b9793675134d,job failed (CitationIntegrityError); check server logs for details
+Q07,success,1117,30600,64,47,64,0.19,38,0,0,9,169.0,90,0,2,3,1,9,1,1,999344,63264,9,90,0,,
+Q08,failure,3958,0,0,0,0,0.18,186,0,1,47,98.0,81,0,5,5,1,5,1,0,1086254,60645,47,98,0,fdb89121e2c4,job failed (DeepResearchExecutionTimeout); check server logs for details
+Q09,success,1098,14990,16,14,16,0.30,42,0,0,11,70.0,94,0,5,5,1,7,1,1,1084983,67144,11,97,0,,
+Q10,success,951,23554,41,25,41,0.32,36,0,0,9,102.0,97,0,4,4,1,8,1,1,1263798,64647,8,92,0,,
