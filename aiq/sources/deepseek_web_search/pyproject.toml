@@ -1,0 +1,21 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools >= 64"]
+
+[tool.setuptools]
+packages = ["deepseek_web_search"]
+package-dir = {"deepseek_web_search" = "src"}
+
+[project]
+name = "deepseek-web-search"
+version = "1.0.0"
+description = "NAT-based DeepSeek Search/Fetch tools (alternate search provider for AI-Q)"
+requires-python = ">=3.11,<3.14"
+license = {text = "Apache-2.0"}
+dependencies = [
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
+]
+
+[project.entry-points."nat.plugins"]
+deepseek_web_search = "deepseek_web_search.register"
