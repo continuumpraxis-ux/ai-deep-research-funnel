@@ -1,0 +1,15 @@
+{
+  "_comment": "Eval question set (10 fixed questions). Proposed set, editable before the run. Q1 is the baseline anchor, kept for continuity. All are citation-demanding research questions in the operations domain.",
+  "questions": [
+    {"id": "Q01", "text": "What are the credible, evidence-backed revenue opportunities for solo AI-agent operators in the next 12 months?"},
+    {"id": "Q02", "text": "What are hiring managers screening for when evaluating AI engineers in late 2026, and which portfolio artifacts most influence their decisions?"},
+    {"id": "Q03", "text": "What are the going rates and current demand for AI automation and AI-video services sold by solo operators on Fiverr and LinkedIn?"},
+    {"id": "Q04", "text": "Which AI agent orchestration frameworks (LangGraph, CrewAI, AutoGen, others) are seeing the fastest enterprise adoption in 2026, and what evidence supports that?"},
+    {"id": "Q05", "text": "What are the most common failure modes and mitigation strategies for production LLM agents as of 2026?"},
+    {"id": "Q06", "text": "How are API pricing changes and model deprecations affecting independent AI developers, and what mitigation patterns reduce that risk?"},
+    {"id": "Q07", "text": "Which regulated verticals (legal, medical, financial) offer the highest pricing power for AI implementation services, and what compliance barriers gate entry?"},
+    {"id": "Q08", "text": "What is the current state of local/on-device LLM inference for 70B-class models on consumer and workstation hardware in 2026?"},
+    {"id": "Q09", "text": "Which customer-acquisition channels deliver the best CAC and close rates for solo AI consultants, with supporting benchmarks?"},
+    {"id": "Q10", "text": "What are the credible monthly revenue ranges for solo AI operators by stage (entry, growth, established), and how reliable is the underlying data?"}
+  ]
+}
