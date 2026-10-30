@@ -1,0 +1,224 @@
+# SEARCH VARIANT - DEEPSEEK SEARCH PROVIDER (Change 2).
+# Identical to config_web_deepseek_researchers.yml except: (a) the search provider is
+# deepseek_web_search instead of tavily_web_search (same tool names), and (b) the Nemotron
+# roles are routed through the local pacing proxy on 127.0.0.1:18123.
+# =============================================================================
+# Identical to config_web_default_llamaindex.yml EXCEPT the RESEARCHER roles are
+# swapped to DeepSeek-flash for the cost/latency/citation-accuracy comparison:
+#   - deep_research_agent.researcher_llm : nemotron_ultra_llm -> deepseek_flash_researcher_llm
+#   - shallow_research_agent.llm         : nemotron_lightning_agent_llm -> deepseek_flash_researcher_llm
+# Orchestrator / source_router / planner / writer stay on Nemotron (defaults held
+# constant) so the eval isolates the researcher-model variable.
+#
+# CREDENTIAL GATE: requires DEEPSEEK_API_KEY in the process env (pulled from
+# TEAM VAULT via `op read` — see eval/serve-deepseek.sh). DO NOT run until the
+# DeepSeek key is in TEAM VAULT and the pull is confirmed to work.
+#
+# VERIFIED (DeepSeek API docs, 2026-10-19):
+#   model id  = deepseek-flash  (version DeepSeek-V4.1-Flash-1017)
+#   base_url  = https://api.deepseek.com  (OpenAI-compatible; /v1 accepted)
+#   price/1M  = cache-miss $0.15 in / $0.60 out off-peak ; $0.30 / $1.20 peak
+# =============================================================================
+
+general:
+  use_uvloop: true
+  telemetry:
+    logging:
+      console:
+        _type: console
+        level: INFO
+
+  front_end:
+    _type: deep_researcher_api
+    runner_class: deep_researcher_api.plugin.DeepResearcherAPIWorker
+    db_url: ${NAT_JOB_STORE_DB_URL:-sqlite+aiosqlite:///./jobs.db}
+    expiry_seconds: 86400
+    cors:
+      allow_origin_regex: 'http://localhost(:\d+)?|http://127.0.0.1(:\d+)?'
+      allow_methods:
+        - GET
+        - POST
+        - DELETE
+        - OPTIONS
+      allow_headers:
+        - "*"
+      allow_credentials: true
+      expose_headers:
+        - "*"
+
+llms:
+  # ---- DeepSeek-flash researcher (the researcher swap) -----------------------
+  deepseek_flash_researcher_llm:
+    _type: openai                                  # DeepSeek API is OpenAI-compatible
+    model_name: ${DEEPSEEK_MODEL:-deepseek-flash}  # DeepSeek-V4.1-Flash-1017 (verified)
+    base_url: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}
+    api_key: ${DEEPSEEK_API_KEY}                   # from TEAM VAULT via op read (env only)
+    # deepseek-flash is a THINKING model and returns 400 "Thinking mode does not support this
+    # tool_choice" for the researcher's forced-tool / structured-output calls. Disabling thinking
+    # (reasoning_effort: none — probe-verified 200 on the researcher shape) fixes it. Researcher
+    # stays deepseek-flash (single-variable design intact); this only affects researcher calls.
+    reasoning_effort: none
+    temperature: 0.2
+    top_p: 0.7
+    max_tokens: 32768
+    num_retries: 5
+    request_timeout: 600
+
+  # ---- Nemotron roles: client switched nim -> openai (2026-10-20) -----------
+  # The nim client (ChatNVIDIA) has a fixed 60 s read timeout and no config field for it; a
+  # long-output Nemotron call measured 63.2 s (probe_longout), matching the ~66 s failures.
+  # Same model ids, same pacing-proxy routing; only the client type changes. The openai client
+  # takes request_timeout, and NVIDIA's chat_template_kwargs ride in extra_body (ChatOpenAI
+  # passes unknown top-level kwargs to the OpenAI SDK, which rejects them).
+  nemotron_lightning_intent_llm:
+    _type: openai
+    model_name: nvidia/nemotron-3.5-lightning-30b-a3b
+    base_url: "http://localhost:18123/v1"
+    api_key: ${NVIDIA_API_KEY}
+    temperature: 0.1
+    top_p: 0.9
+    max_tokens: 1024
+    num_retries: 5
+    request_timeout: 600
+    parallel_tool_calls: false
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+
+  nemotron_lightning_agent_llm:
+    _type: openai
+    model_name: nvidia/nemotron-3-ultra-550b-a55b
+    base_url: "http://localhost:18123/v1"
+    api_key: ${NVIDIA_API_KEY}
+    temperature: 0.2
+    top_p: 0.7
+    max_tokens: 32768
+    num_retries: 5
+    request_timeout: 600
+    parallel_tool_calls: false
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: true
+
+  nemotron_ultra_llm:
+    _type: openai
+    model_name: nvidia/nemotron-3-ultra-550b-a55b
+    base_url: "http://localhost:18123/v1"
+    api_key: ${NVIDIA_API_KEY}
+    temperature: 0.2
+    top_p: 0.7
+    max_tokens: 16384
+    num_retries: 5
+    request_timeout: 600
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+
+  nemotron_ultra_writer_llm:
+    _type: openai
+    model_name: nvidia/nemotron-3-ultra-550b-a55b
+    base_url: "http://localhost:18123/v1"
+    api_key: ${NVIDIA_API_KEY}
+    temperature: 0.2
+    top_p: 0.7
+    max_tokens: 32768
+    num_retries: 5
+    request_timeout: 600
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+
+  summary_llm:
+    _type: nim
+    model_name: google/gemma-4-31b-it
+    base_url: "http://localhost:18123/v1"
+    api_key: ${NVIDIA_API_KEY}
+    temperature: 0.1
+    max_tokens: 100
+
+functions:
+  data_sources:
+    _type: data_source_registry
+    sources:
+      - id: web_search
+        name: "Web Search"
+        description: "Search the web for real-time information."
+        tools:
+          - web_search_tool
+          - advanced_web_search_tool
+      - id: knowledge_layer
+        name: "Knowledge Base"
+        description: "Search uploaded documents and files."
+        tools:
+          - knowledge_search
+
+  # ---- DeepSeek Search as the search provider (Change 2) ----------------------
+  # Provider swap ONLY. The tool NAMES are unchanged, so data_sources, every agent's
+  # exclude_tools, the planner, the writer and the eval harness all run unchanged.
+  # ZERO Tavily: no tavily_web_search tool is registered in this variant at all.
+  # Contract: POST /v1/tools/search, query<=128 chars, count=3; results carry
+  # rerank_score (0-3) and authority (0-4). Every emitted source is stamped
+  # provenance="deepseek-search". Billing: $0.75 / 1,000 SUCCESSFUL requests;
+  # empty/failed/timeout are not billed.
+  web_search_tool:
+    _type: deepseek_web_search
+    count: 3
+    max_content_length: 1000
+
+  advanced_web_search_tool:
+    _type: deepseek_web_search
+    count: 3
+    max_content_length: 1000
+
+  knowledge_search:
+    _type: knowledge_retrieval
+    backend: llamaindex
+    collection_name: ${COLLECTION_NAME:-test_collection}
+    generate_summary: true
+    summary_model: summary_llm
+    summary_db: ${DEEP_RESEARCHER_SUMMARY_DB:-sqlite+aiosqlite:///./summaries.db}
+    top_k: 5
+    chroma_dir: ${DEEP_RESEARCHER_CHROMA_DIR:-/tmp/chroma_data}
+
+  intent_classifier:
+    _type: intent_classifier
+    llm: nemotron_lightning_intent_llm
+
+  clarifier_agent:
+    _type: clarifier_agent
+    llm: nemotron_ultra_llm
+    max_turns: 3
+    log_response_max_chars: 2000
+
+  shallow_research_agent:
+    _type: shallow_research_agent
+    llm: deepseek_flash_researcher_llm          # SWAPPED (was nemotron_lightning_agent_llm)
+    exclude_tools:
+      - advanced_web_search_tool
+    max_llm_turns: 10
+    max_tool_iterations: 5
+
+  deep_research_agent:
+    _type: deep_research_agent
+    enable_citation_verification: true
+    orchestrator_llm: nemotron_ultra_llm
+    source_router_llm: nemotron_ultra_llm
+    researcher_llm: deepseek_flash_researcher_llm # SWAPPED (was nemotron_ultra_llm)
+    planner_llm: nemotron_ultra_llm
+    writer_llm: nemotron_ultra_writer_llm
+    exclude_tools:
+      - web_search_tool
+
+workflow:
+  _type: chat_deepresearcher_agent
+  enable_escalation: true
+  enable_clarifier: true
+  use_async_deep_research: true
+  checkpoint_db: ${DEEP_RESEARCHER_CHECKPOINT_DB:-./checkpoints.db}
+  relay:
+    observability:
+      atof:
+        enabled: true
+        output_directory: ./relay
+        filename: deep-researcher-relay.atof.jsonl
+        mode: append
